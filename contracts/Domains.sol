@@ -2,19 +2,38 @@
 
 pragma solidity ^0.8.4;
 
+import {StringUtils} from "./lib/StringUtils.sol";
 import "hardhat/console.sol";
 
 contract Domains {
+    string public tld;
     mapping(string => address) public domains;
     mapping(string => string) public records;
 
-    constructor() {
-        console.log("Domains contract!");
+    constructor(string memory _tld) payable {
+        tld = _tld;
+        console.log("domain name service deployed for tld %s", tld);
     }
 
-    function register(string calldata name) public {
+    function price(string calldata name) public pure returns (uint) {
+        uint len = StringUtils.strlen(name);
+        require(len > 0);
+
+        if (len == 3) {
+            return 5 * 10**17; // 5 MATIC = 5 000 000 000 000 000 000 (18 decimals). We're going with 0.5 Matic cause the faucets don't give a lot
+        } else if (len == 4) {
+            return 3 * 10**17;
+        } else {
+            return 1 * 10**17;
+        }
+    }
+
+    function register(string calldata name) public payable {
         // verify if the name is already registered
         require(domains[name] == address(0));
+
+        uint _price = price(name);
+        require(msg.value >= _price, "not enough funds");
 
         domains[name] = msg.sender;
         console.log("Registered domain: %s by %s", name, msg.sender);
